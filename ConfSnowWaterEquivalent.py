@@ -1,14 +1,13 @@
 from ILAMB.Confrontation import Confrontation
-import numpy as np
 
 class ConfSnowWaterEquivalent(Confrontation):
-
+            
     def stageData(self,m):
 
-        # same as regular, but we subtract off the minimum
-        obs,mod   = super(ConfSnowWaterEquivalent,self).stageData(m)
-        omin      = obs.data.min(axis=0)
-        mmin      = mod.data.min(axis=0)
-        obs.data -= omin[np.newaxis,...]
-        mod.data -= mmin[np.newaxis,...]
+        # clip off anything above 250 [mm]
+        obs,mod = super(ConfSnowWaterEquivalent,self).stageData(m)
+        obs.convert("mm")
+        mod.convert("mm")
+        obs.data = obs.data.clip(0,250)
+        mod.data = mod.data.clip(0,250)
         return obs,mod
