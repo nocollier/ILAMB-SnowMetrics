@@ -7,6 +7,8 @@ import matplotlib.pyplot as plt
 from netCDF4 import Dataset
 from ILAMB import ilamblib as il
 import numpy as np
+from ILAMB.Regions import Regions
+import os
 
 def _ALTFromTSL(tsl,dmax=3.5,dres=0.01,Teps=273.15):
     """
@@ -44,9 +46,13 @@ class ConfPermafrostExtent(Confrontation):
 
     def __init__(self,**keywords):
 
+        # Ensure we have this region
+        r = Regions() 
+        r.addRegionNetCDF4(os.path.join(os.environ["ILAMB_ROOT"],"DATA/regions/nh_no_gl.nc"))
+        
         # Ugly, but this is how we call the Confrontation constructor
         super(ConfPermafrostExtent,self).__init__(**keywords)
-
+        
         # Now we overwrite some things which are different here
         self.layout
         self.regions        = ["global"]
@@ -63,7 +69,7 @@ class ConfPermafrostExtent(Confrontation):
                                     "Overall Score"])
 
     def stageData(self,m):
-
+        
         obs = Variable(filename      = self.source,
                        variable_name = "permafrost_extent")
 
@@ -89,6 +95,12 @@ class ConfPermafrostExtent(Confrontation):
                        lat  = mod.lat,
                        lon  = mod.lon,
                        area = mod.area)
+        
+        # mask out Greenland
+        r = Regions() 
+        obs.data.mask += r.getMask("nh_no_gl",obs)
+        mod.data.mask += r.getMask("nh_no_gl",mod)
+        
         return obs,mod
 
     def confront(self,m):
@@ -282,8 +294,10 @@ class ConfPermafrostExtent(Confrontation):
         if self.master:
             obs = Variable(filename      = self.source,
                            variable_name = "permafrost_extent")
-            # plot result
 
+            # ensure we mask the same way or plots look as if we didn't
+            r = Regions() 
+            obs.data.mask += r.getMask("nh_no_gl",obs)
             
             fig,ax = plt.subplots(figsize=(10,10),dpi=60,
                                   subplot_kw={'projection':ccrs.Orthographic(central_latitude=+90,central_longitude=180)})
